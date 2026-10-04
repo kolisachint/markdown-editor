@@ -56,7 +56,9 @@ Omawrite at the size it is designed around; larger and smaller sizes scale from 
 
 ## Requirements
 
-- Qt 6: `qt6-base`, `qt6-declarative`, `qt6-quickcontrols2`
+- Qt 6.5 or newer: `qtbase`, `qtdeclarative`, `qtquickcontrols2`. The 6.5
+  floor comes from `QStyleHints::colorScheme()`, which reads the system
+  appearance on macOS as well as on Linux.
 - `xdg-desktop-portal` and a portal backend, on Linux
 
 The IBM Plex Mono font is bundled under the SIL Open Font License 1.1; see
