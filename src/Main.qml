@@ -38,6 +38,26 @@ ApplicationWindow {
     property url pendingOpenUrl
     property string pendingAction: ""
     property bool replaceOpen: false
+
+    // Qt maps Ctrl in a key sequence to Command on macOS, so every Ctrl chord
+    // below is really Cmd there. The reference has to say what the keyboard
+    // shows, and macOS calls the other modifier Control rather than Super.
+    readonly property string primaryModifier: Qt.platform.os === "osx" ? "\u2318" : "Ctrl"
+    readonly property string alternateModifier: Qt.platform.os === "osx" ? "Ctrl" : "Super"
+    readonly property var shortcutReference: [
+        ["S", "Save"],
+        ["Shift+S", "Save As"],
+        ["O", "Open"],
+        ["N", "New Window"],
+        ["F", "Find"],
+        ["H", "Find and Replace"],
+        ["B", "Bold"],
+        ["I", "Italic"],
+        ["K", "Link"],
+        ["P", "Print"],
+        ["F11 / " + alternateModifier + "+F", "Fullscreen"],
+        ["?", "Shortcuts"]
+    ]
     property bool awaitingPendingSave: false
 
     Material.theme: darkMode ? Material.Dark : Material.Light
@@ -332,7 +352,9 @@ ApplicationWindow {
         standardButtons: Dialog.Close
         anchors.centerIn: parent
         contentItem: Label {
-            text: "Ctrl+S  Save\nCtrl+Shift+S  Save As\nCtrl+O  Open\nCtrl+N  New Window\nCtrl+F  Find\nCtrl+H  Find and Replace\nCtrl+B  Bold\nCtrl+I  Italic\nCtrl+K  Link\nCtrl+P  Print\nF11 / Super+F  Fullscreen\nCtrl+?  Shortcuts"
+            text: win.shortcutReference.map(function (row) {
+                return win.primaryModifier + "+" + row[0] + "  " + row[1];
+            }).join("\n")
             lineHeight: 1.5
         }
     }

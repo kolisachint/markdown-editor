@@ -1,15 +1,9 @@
-QT += core gui quick testlib
-CONFIG += testcase c++17
-TEMPLATE = app
+SRC_ROOT = $$_PRO_FILE_PWD_/..
+
 TARGET = tst_omawrite
+CONFIG += testcase
+QT += testlib
 
-INCLUDEPATH += ../src
-SOURCES += \
-    tst_omawrite.cpp \
-    ../src/backend.cpp \
-    ../src/markdownhighlighter.cpp
-HEADERS += \
-    ../src/backend.h \
-    ../src/markdownhighlighter.h
+include(../omawrite.pri)
 
-QT += widgets printsupport quickcontrols2 quickdialogs2 dbus
+SOURCES += $$SRC_ROOT/tests/tst_omawrite.cpp

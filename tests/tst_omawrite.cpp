@@ -8,6 +8,8 @@
 #include "backend.h"
 #include "markdownhighlighter.h"
 
+#include <QtGlobal>
+
 class OmawriteTest : public QObject {
     Q_OBJECT
 
@@ -93,6 +95,13 @@ private slots:
         QCOMPARE(markup.at(2).markers[0].length, 1);
     }
 
+    // The omarchy theme is a Linux desktop theme; on every other platform the
+    // app keeps its built-in palette and this test has nothing to stand on.
+#ifndef Q_OS_LINUX
+    void loadsCurrentOmarchyTheme() {
+        QSKIP("the omarchy theme only exists on Linux");
+    }
+#else
     void loadsCurrentOmarchyTheme() {
         QTemporaryDir homeDirectory;
         QVERIFY(homeDirectory.isValid());
@@ -126,6 +135,7 @@ private slots:
         QCOMPARE(backend.themeSelection(), QStringLiteral("#445566"));
         QVERIFY(!backend.darkMode());
     }
+#endif
 
     void ignoresFileWatcherEventsForSavedContents() {
         QTemporaryDir directory;

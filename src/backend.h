@@ -118,8 +118,8 @@ private:
     void clearRecovery();
     QString recoveryPath() const;
     void watchCurrentFile();
-    void loadOmarchyTheme();
-    void watchOmarchyTheme();
+    void loadPlatformTheme();
+    void watchPlatformTheme();
 
     QUrl m_fileUrl;
     bool m_modified = false;

@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Assembles build/Omawrite.app around the binary bin/build produced. Nothing here
+# is macOS-specific knowledge the app needs at runtime; it is just the bundle
+# layout macOS expects around any executable.
+set -eu
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+APP="$ROOT/build/Omawrite.app"
+CONTENTS="$APP/Contents"
+
+"$ROOT/bin/build"
+
+rm -rf "$APP"
+mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
+
+cp "$ROOT/build/omawrite" "$CONTENTS/MacOS/omawrite"
+cp "$ROOT/pkgbuild/macos/Info.plist" "$CONTENTS/Info.plist"
+cp "$ROOT/pkgbuild/macos/omawrite.icns" "$CONTENTS/Resources/omawrite.icns"
+
+# Ad-hoc signing keeps the arm64 slice loadable and stops macOS re-prompting on
+# every launch. Replace with a Developer ID identity to ship it signed and
+# notarized.
+codesign --force --deep --sign - "$APP" >/dev/null 2>&1 \
+  && echo "Signed $APP (ad-hoc)" \
+  || echo "codesign unavailable; $APP is left unsigned"
+
+echo "Built $APP"
+echo "Run it with: open \"$APP\""

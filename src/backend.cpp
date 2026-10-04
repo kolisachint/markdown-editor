@@ -1,5 +1,7 @@
 #include "backend.h"
 
+#include "platformtheme.h"
+
 #include <QClipboard>
 #include <QColor>
 #include <QCoreApplication>
@@ -25,7 +27,6 @@
 #include <QTextBlockFormat>
 #include <QTextCursor>
 #include <QTextDocument>
-#include <QTextStream>
 #include <QUrl>
 #include <QVariantMap>
 #include <QWindow>
@@ -142,15 +143,15 @@ Backend::Backend(QObject *parent) : QObject(parent) {
                 emit externalChangeDetected(deleted, m_modified);
             });
 
-    loadOmarchyTheme();
-    watchOmarchyTheme();
+    loadPlatformTheme();
+    watchPlatformTheme();
     connect(&m_themeWatcher, &QFileSystemWatcher::fileChanged, this, [this]() {
-        loadOmarchyTheme();
-        watchOmarchyTheme();
+        loadPlatformTheme();
+        watchPlatformTheme();
     });
     connect(&m_themeWatcher, &QFileSystemWatcher::directoryChanged, this, [this]() {
-        loadOmarchyTheme();
-        watchOmarchyTheme();
+        loadPlatformTheme();
+        watchPlatformTheme();
     });
 }
 
@@ -179,7 +180,7 @@ void Backend::setDarkMode(bool darkMode) {
         return;
 
     m_darkMode = darkMode;
-    loadOmarchyTheme();
+    loadPlatformTheme();
     emit darkModeChanged();
 }
 
@@ -651,53 +652,32 @@ void Backend::watchCurrentFile() {
         m_fileWatcher.addPath(m_fileUrl.toLocalFile());
 }
 
-void Backend::loadOmarchyTheme() {
+void Backend::loadPlatformTheme() {
     m_themeBackground = m_darkMode ? QStringLiteral("#101010") : QStringLiteral("#ffffff");
     m_themeForeground = m_darkMode ? QStringLiteral("#eeeeee") : QStringLiteral("#222324");
     m_themeAccent = m_darkMode ? QStringLiteral("#5584aa") : QStringLiteral("#2077b2");
     m_themeSelection = m_darkMode ? QStringLiteral("#186a9a") : QStringLiteral("#2077b2");
 
-    const QString colorsPath = QDir::homePath()
-        + QStringLiteral("/.local/state/omarchy/current/theme/colors.toml");
-    QString themeMode;
-    QFile file(colorsPath);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while (!in.atEnd()) {
-            const QString line = in.readLine().trimmed();
-            if (line.isEmpty() || line.startsWith(QLatin1Char('#')))
-                continue;
-
-            const int equals = line.indexOf(QLatin1Char('='));
-            if (equals < 0)
-                continue;
-
-            const QString key = line.left(equals).trimmed();
-            QString value = line.mid(equals + 1).trimmed();
-            if (value.size() >= 2
-                    && ((value.front() == QLatin1Char('"') && value.back() == QLatin1Char('"'))
-                        || (value.front() == QLatin1Char('\'') && value.back() == QLatin1Char('\''))))
-                value = value.mid(1, value.size() - 2);
-
-            if (key == QStringLiteral("mode"))
-                themeMode = value;
-            else if (key == QStringLiteral("background"))
-                m_themeBackground = value;
-            else if (key == QStringLiteral("foreground"))
-                m_themeForeground = value;
-            else if (key == QStringLiteral("accent"))
-                m_themeAccent = value;
-            else if (key == QStringLiteral("selection"))
-                m_themeSelection = value;
-        }
+    // Only some desktops publish their own colors — Linux picks up the omarchy
+    // theme — and the rest leave the app on the palette above.
+    PlatformTheme::Palette palette;
+    if (PlatformTheme::palette(&palette)) {
+        if (!palette.background.isEmpty())
+            m_themeBackground = palette.background;
+        if (!palette.foreground.isEmpty())
+            m_themeForeground = palette.foreground;
+        if (!palette.accent.isEmpty())
+            m_themeAccent = palette.accent;
+        if (!palette.selection.isEmpty())
+            m_themeSelection = palette.selection;
     }
 
     bool themeModeKnown = false;
     bool themeIsDark = m_darkMode;
-    if (themeMode == QStringLiteral("dark")) {
+    if (palette.mode == QStringLiteral("dark")) {
         themeIsDark = true;
         themeModeKnown = true;
-    } else if (themeMode == QStringLiteral("light")) {
+    } else if (palette.mode == QStringLiteral("light")) {
         themeIsDark = false;
         themeModeKnown = true;
     } else {
@@ -722,22 +702,16 @@ void Backend::loadOmarchyTheme() {
     emit themeColorsChanged();
 }
 
-void Backend::watchOmarchyTheme() {
+void Backend::watchPlatformTheme() {
     const QStringList watched = m_themeWatcher.files() + m_themeWatcher.directories();
     if (!watched.isEmpty())
         m_themeWatcher.removePaths(watched);
 
-    const QString currentDir = QDir::homePath()
-        + QStringLiteral("/.local/state/omarchy/current");
-    const QString themeDir = currentDir + QStringLiteral("/theme");
-    const QString colorsPath = themeDir + QStringLiteral("/colors.toml");
-
-    if (QDir(currentDir).exists())
-        m_themeWatcher.addPath(currentDir);
-    if (QDir(themeDir).exists())
-        m_themeWatcher.addPath(themeDir);
-    if (QFile::exists(colorsPath))
-        m_themeWatcher.addPath(colorsPath);
+    // Empty on the platforms whose desktop publishes no palette of its own,
+    // and QFileSystemWatcher warns about an empty list.
+    const QStringList paths = PlatformTheme::palettePaths();
+    if (!paths.isEmpty())
+        m_themeWatcher.addPaths(paths);
 }
 
 QUrl Backend::suggestedSaveUrl() const {
