@@ -30,6 +30,9 @@ jobs:
   macos:
     name: macos
     runs-on: macos-latest
+    permissions:
+      # Needed to create the release that the tagged run attaches the app to.
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
